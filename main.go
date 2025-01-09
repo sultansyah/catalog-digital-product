@@ -75,11 +75,11 @@ func main() {
 	api.POST("/auth/login", userHandler.Login)
 	api.POST("/auth/password", middleware.AuthMiddleware(tokenService), userHandler.UpdatePassword)
 
-	api.POST("/category", middleware.AuthMiddleware(tokenService), categoryHandler.Create)
-	api.GET("/category", categoryHandler.GetAll)
-	api.GET("/category/:id", categoryHandler.Get)
-	api.DELETE("/category/:id", middleware.AuthMiddleware(tokenService), categoryHandler.Delete)
-	api.PUT("/category/:id", middleware.AuthMiddleware(tokenService), categoryHandler.Update)
+	api.POST("/categories", middleware.AuthMiddleware(tokenService), categoryHandler.Create)
+	api.GET("/categories", categoryHandler.GetAll)
+	api.GET("/categories/:id", categoryHandler.Get)
+	api.DELETE("/categories/:id", middleware.AuthMiddleware(tokenService), categoryHandler.Delete)
+	api.PUT("/categories/:id", middleware.AuthMiddleware(tokenService), categoryHandler.Update)
 
 	if err := router.Run(); err != nil {
 		log.Fatalf("Failed to run server: %v", err)

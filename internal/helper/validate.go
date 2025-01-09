@@ -40,6 +40,13 @@ func BindAndValidate(c *gin.Context, input any, bind string) bool {
 			return false
 		}
 		return true
+	case "form":
+		if err := c.Bind(input); err != nil {
+			webResponse.Data = err.Error()
+			APIResponse(c, webResponse)
+			return false
+		}
+		return true
 	default:
 		return false
 	}

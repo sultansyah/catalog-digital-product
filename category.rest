@@ -1,0 +1,32 @@
+### Variables
+@baseUrl = http://localhost:8080/api/v1
+
+### Create Category
+POST {{baseUrl}}/categories
+Cookie: auth_token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3MzY2OTc5MzcsInVzZXJfaWQiOjF9.tfDee6K8DvtzQOhLpWLWxtdbwSwbmNHh6C9RIRW2Pn0
+Content-Type: application/json
+
+{
+    "name": "Buy groceries1"
+}
+
+### Edit Category
+PUT {{baseUrl}}/categories/6
+Cookie: auth_token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3MzY2OTc5MzcsInVzZXJfaWQiOjF9.tfDee6K8DvtzQOhLpWLWxtdbwSwbmNHh6C9RIRW2Pn0
+Content-Type: application/json
+
+{
+    "name": "eddsaisda"
+}
+
+### Delete Category
+DELETE {{baseUrl}}/categories/6
+Cookie: auth_token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3MzY2OTc5MzcsInVzZXJfaWQiOjF9.tfDee6K8DvtzQOhLpWLWxtdbwSwbmNHh6C9RIRW2Pn0
+
+### Get Category by ID
+GET {{baseUrl}}/categories/7
+Cookie: auth_token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3MzY2OTc5MzcsInVzZXJfaWQiOjF9.tfDee6K8DvtzQOhLpWLWxtdbwSwbmNHh6C9RIRW2Pn0
+
+### Get All Categorys
+GET {{baseUrl}}/categories
+Cookie: auth_token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3MzY2OTc5MzcsInVzZXJfaWQiOjF9.tfDee6K8DvtzQOhLpWLWxtdbwSwbmNHh6C9RIRW2Pn0

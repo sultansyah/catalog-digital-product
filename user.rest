@@ -7,13 +7,13 @@ Content-Type: application/json
 
 {
     "username": "admin",
-    "password": "admin2"
+    "password": "admin"
 }
 
 ### Change Password User
 POST {{baseUrl}}/auth/password
 Content-Type: application/json
-Cookie: auth_token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3MzY2ODExNjEsInVzZXJfaWQiOjF9.udOInb_Q_wutLilFNXR4g3JKOy0Wctm5Or0idLKFZfo
+Cookie: auth_token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3MzY2OTc5MzcsInVzZXJfaWQiOjF9.tfDee6K8DvtzQOhLpWLWxtdbwSwbmNHh6C9RIRW2Pn0
 
 {
     "password": "admin2"

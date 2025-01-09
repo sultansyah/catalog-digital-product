@@ -1,0 +1,1 @@
+delete from store where id = 1;

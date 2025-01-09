@@ -29,6 +29,7 @@ func (c *CategoryServiceImpl) Create(ctx context.Context, input CreateInputCateg
 	if err != nil {
 		return Category{}, err
 	}
+	defer helper.HandleTransaction(tx, &err)
 
 	category := Category{
 		Name: input.Name,
@@ -47,7 +48,7 @@ func (c *CategoryServiceImpl) Delete(ctx context.Context, input GetInputCategory
 	if err != nil {
 		return err
 	}
-	helper.HandleTransaction(tx, &err)
+	defer helper.HandleTransaction(tx, &err)
 
 	category, err := c.CategoryRepository.FindById(ctx, tx, input.Id)
 	if err != nil {
@@ -88,6 +89,7 @@ func (c *CategoryServiceImpl) GetAll(ctx context.Context) ([]Category, error) {
 	if err != nil {
 		return []Category{}, err
 	}
+	defer helper.HandleTransaction(tx, &err)
 
 	categories, err := c.CategoryRepository.FindAll(ctx, tx)
 	if err != nil {
@@ -105,6 +107,7 @@ func (c *CategoryServiceImpl) Update(ctx context.Context, inputData CreateInputC
 	if err != nil {
 		return Category{}, err
 	}
+	defer helper.HandleTransaction(tx, &err)
 
 	category, err := c.CategoryRepository.FindById(ctx, tx, inputId.Id)
 	if err != nil {

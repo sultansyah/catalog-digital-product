@@ -44,6 +44,7 @@ func (c *CategoryRepositoryImpl) FindAll(ctx context.Context, tx *sql.Tx) ([]Cat
 	if err != nil {
 		return []Category{}, err
 	}
+	defer rows.Close()
 
 	var categories []Category
 	for rows.Next() {
@@ -65,6 +66,7 @@ func (c *CategoryRepositoryImpl) FindById(ctx context.Context, tx *sql.Tx, id in
 	if err != nil {
 		return Category{}, err
 	}
+	defer row.Close()
 
 	var category Category
 	if row.Next() {
