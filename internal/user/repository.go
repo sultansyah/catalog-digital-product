@@ -54,6 +54,8 @@ func (u *UserRepositoryImpl) FindByUsername(ctx context.Context, tx *sql.Tx, use
 		if err != nil {
 			return User{}, err
 		}
+
+		return user, nil
 	}
 
 	return user, custom.ErrNotFound

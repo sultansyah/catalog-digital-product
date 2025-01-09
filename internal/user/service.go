@@ -10,7 +10,7 @@ import (
 
 type UserService interface {
 	Login(ctx context.Context, input LoginInputUser) (User, string, error)
-	UpdatePassword(ctx context.Context, input UpdatePasswordInputUser, currentUserId int) error
+	UpdatePassword(ctx context.Context, input UpdatePasswordInputUser, userId int) error
 }
 
 type UserServiceImpl struct {
@@ -53,14 +53,15 @@ func (u *UserServiceImpl) Login(ctx context.Context, input LoginInputUser) (User
 	return user, token, nil
 }
 
-func (u *UserServiceImpl) UpdatePassword(ctx context.Context, input UpdatePasswordInputUser, currentUserId int) error {
+func (u *UserServiceImpl) UpdatePassword(ctx context.Context, input UpdatePasswordInputUser, userId int) error {
 	tx, err := u.DB.Begin()
 	if err != nil {
 		return err
 	}
 	defer helper.HandleTransaction(tx, &err)
 
-	user, err := u.UserRepository.FindById(ctx, tx, currentUserId)
+	user, err := u.UserRepository.FindById(ctx, tx, userId)
+
 	if err != nil {
 		return err
 	}
@@ -68,7 +69,12 @@ func (u *UserServiceImpl) UpdatePassword(ctx context.Context, input UpdatePasswo
 		return custom.ErrNotFound
 	}
 
-	user.Password = input.Password
+	hashedPassword, err := helper.HashPassword(input.Password)
+	if err != nil {
+		return err
+	}
+
+	user.Password = hashedPassword
 	err = u.UserRepository.Update(ctx, tx, user)
 	if err != nil {
 		return err
