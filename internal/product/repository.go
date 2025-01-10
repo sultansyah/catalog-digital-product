@@ -16,6 +16,7 @@ type ProductRepository interface {
 	DeleteImage(ctx context.Context, tx *sql.Tx, id int) error
 	UpdateImage(ctx context.Context, tx *sql.Tx, id int) error
 	UpdateImagesLogoFalse(ctx context.Context, tx *sql.Tx, productId int) error
+	FindImageById(ctx context.Context, tx *sql.Tx, id int) (ProductImages, error)
 }
 
 type ProductRepositoryImpl struct {
@@ -63,6 +64,7 @@ func (p *ProductRepositoryImpl) FindAll(ctx context.Context, tx *sql.Tx) ([]Prod
 	if err != nil {
 		return []Product{}, err
 	}
+	defer rows.Close()
 
 	var products []Product
 	for rows.Next() {
@@ -103,6 +105,7 @@ func (p *ProductRepositoryImpl) FindById(ctx context.Context, tx *sql.Tx, id int
 	if err != nil {
 		return Product{}, err
 	}
+	defer row.Close()
 
 	var product Product
 	if row.Next() {
@@ -165,7 +168,7 @@ func (p *ProductRepositoryImpl) Update(ctx context.Context, tx *sql.Tx, product 
 func (p *ProductRepositoryImpl) UpdateImage(ctx context.Context, tx *sql.Tx, id int) error {
 	sql := `
 	UPDATE product_images 
-	SET is_logo = ? WHERE id = ?
+	SET is_logo = TRUE WHERE id = ?
 	`
 	_, err := tx.ExecContext(ctx, sql, id)
 	return err
@@ -178,4 +181,24 @@ func (p *ProductRepositoryImpl) UpdateImagesLogoFalse(ctx context.Context, tx *s
 	`
 	_, err := tx.ExecContext(ctx, sql, productId)
 	return err
+}
+
+func (p *ProductRepositoryImpl) FindImageById(ctx context.Context, tx *sql.Tx, id int) (ProductImages, error) {
+	sql := "select id, product_id, image_url, is_logo, created_at, updated_at from product_images where id = ?"
+	row, err := tx.QueryContext(ctx, sql, id)
+	if err != nil {
+		return ProductImages{}, err
+	}
+	defer row.Close()
+
+	var productImages ProductImages
+	if row.Next() {
+		if err := row.Scan(&productImages.Id, &productImages.ProductId, &productImages.ImageUrl, &productImages.IsLogo, &productImages.CreatedAt, &productImages.UpdatedAt); err != nil {
+			return ProductImages{}, err
+		}
+
+		return productImages, nil
+	}
+
+	return ProductImages{}, custom.ErrNotFound
 }
