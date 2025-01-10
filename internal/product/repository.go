@@ -142,17 +142,11 @@ func (p *ProductRepositoryImpl) InsertImage(ctx context.Context, tx *sql.Tx, pro
 	(product_id, image_url, is_logo) 
 	VALUES (?, ?, ?)
 	`
-	result, err := tx.ExecContext(ctx, sql, productImages.ProductId, productImages.ImageUrl, productImages.IsLogo)
+	_, err := tx.ExecContext(ctx, sql, productImages.ProductId, productImages.ImageUrl, productImages.IsLogo)
 	if err != nil {
 		return err
 	}
 
-	id, err := result.LastInsertId()
-	if err != nil {
-		return err
-	}
-
-	productImages.Id = int(id)
 	return nil
 }
 
