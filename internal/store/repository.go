@@ -19,8 +19,8 @@ func NewStoreRepository() StoreRepository {
 }
 
 func (s *StoreRepositoryImpl) Update(ctx context.Context, tx *sql.Tx, store Store) (Store, error) {
-	sql := "UPDATE store SET id=?,name=?,description=?,location=?,latitude=?,longtitude=?,phone_number=?,email=?,image_url=?,whatsapp_link=?,created_at=?,updated_at=?]' WHERE id = ?"
-	result, err := tx.ExecContext(ctx, sql, store.Id)
+	sql := "UPDATE store SET name=?,description=?,location=?,latitude=?,longtitude=?,phone_number=?,email=?,image_url=?,whatsapp_link=? WHERE id = ?"
+	result, err := tx.ExecContext(ctx, sql, store.Name, store.Description, store.Location, store.Latitude, store.Longitude, store.PhoneNumber, store.Email, store.ImageURL, store.WhatsappLink, store.Id)
 	if err != nil {
 		return Store{}, err
 	}

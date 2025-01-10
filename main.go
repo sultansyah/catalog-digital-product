@@ -4,6 +4,7 @@ import (
 	"catalog-digital-product/internal/category"
 	"catalog-digital-product/internal/config"
 	"catalog-digital-product/internal/middleware"
+	"catalog-digital-product/internal/store"
 	"catalog-digital-product/internal/token"
 	"catalog-digital-product/internal/user"
 	"log"
@@ -51,6 +52,7 @@ func main() {
 	}()
 
 	router := gin.Default()
+	router.Use(gin.Recovery())
 	router.Use(cors.New(cors.Config{
 		AllowOrigins:     []string{"http://127.0.0.1:5500"},
 		AllowMethods:     []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
@@ -61,6 +63,7 @@ func main() {
 	}))
 
 	api := router.Group("/api/v1")
+	api.Static("/static/store", "./public/images/store")
 
 	tokenService := token.NewTokenService([]byte(jwtSecretKey))
 
@@ -72,6 +75,10 @@ func main() {
 	categoryService := category.NewCategoryService(categoryRepository, db)
 	categoryHandler := category.NewCategoryHandler(categoryService)
 
+	storeRepository := store.NewStoreRepository()
+	storeService := store.NewStoreService(storeRepository, db)
+	storeHandler := store.NewStoreHandler(storeService)
+
 	api.POST("/auth/login", userHandler.Login)
 	api.POST("/auth/password", middleware.AuthMiddleware(tokenService), userHandler.UpdatePassword)
 
@@ -80,6 +87,9 @@ func main() {
 	api.GET("/categories/:id", categoryHandler.Get)
 	api.DELETE("/categories/:id", middleware.AuthMiddleware(tokenService), categoryHandler.Delete)
 	api.PUT("/categories/:id", middleware.AuthMiddleware(tokenService), categoryHandler.Update)
+
+	api.PUT("/store", middleware.AuthMiddleware(tokenService), storeHandler.Update)
+	api.GET("/store", storeHandler.GetStore)
 
 	if err := router.Run(); err != nil {
 		log.Fatalf("Failed to run server: %v", err)

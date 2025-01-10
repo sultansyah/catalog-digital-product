@@ -8,6 +8,5 @@ type UpdateStoreInput struct {
 	Longitude    float64 `form:"longitude" binding:"required"`
 	PhoneNumber  string  `form:"phone_number" binding:"required"`
 	Email        string  `form:"email" binding:"required"`
-	ImageURL     string  `form:"image_url" binding:"required"`
 	WhatsappLink string  `form:"whatsapp_link" binding:"required"`
 }

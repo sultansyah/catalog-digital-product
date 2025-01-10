@@ -7,7 +7,6 @@ CREATE TABLE products(
     discount decimal(10, 2),
     stock int default 0,
     description text,
-    image_url varchar(255),
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     foreign key(category_id) references categories(id)
