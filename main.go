@@ -4,6 +4,7 @@ import (
 	"catalog-digital-product/internal/category"
 	"catalog-digital-product/internal/config"
 	"catalog-digital-product/internal/middleware"
+	"catalog-digital-product/internal/product"
 	"catalog-digital-product/internal/store"
 	"catalog-digital-product/internal/token"
 	"catalog-digital-product/internal/user"
@@ -79,6 +80,10 @@ func main() {
 	storeService := store.NewStoreService(storeRepository, db)
 	storeHandler := store.NewStoreHandler(storeService)
 
+	productRepository := product.NewProductRepository()
+	productService := product.NewProductService(productRepository, db)
+	productHandler := product.NewProductHandler(productService)
+
 	api.POST("/auth/login", userHandler.Login)
 	api.POST("/auth/password", middleware.AuthMiddleware(tokenService), userHandler.UpdatePassword)
 
@@ -90,6 +95,16 @@ func main() {
 
 	api.PUT("/store", middleware.AuthMiddleware(tokenService), storeHandler.Update)
 	api.GET("/store", storeHandler.GetStore)
+
+	api.GET("/products", productHandler.GetAll)
+	api.GET("/products/:id", productHandler.Get)
+	api.POST("/products", middleware.AuthMiddleware(tokenService), productHandler.Insert)
+	api.PUT("/products/:id", middleware.AuthMiddleware(tokenService), productHandler.Update)
+	api.DELETE("/products/:id", middleware.AuthMiddleware(tokenService), productHandler.Delete)
+
+	api.POST("/products/:id/images", middleware.AuthMiddleware(tokenService), productHandler.InsertImage)
+	api.POST("/products/:id/images/:id", middleware.AuthMiddleware(tokenService), productHandler.SetLogoImage)
+	api.DELETE("/products/:id/images/:id", middleware.AuthMiddleware(tokenService), productHandler.SetLogoImage)
 
 	if err := router.Run(); err != nil {
 		log.Fatalf("Failed to run server: %v", err)

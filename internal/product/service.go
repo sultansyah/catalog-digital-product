@@ -7,11 +7,13 @@ import (
 	"database/sql"
 	"mime/multipart"
 	"sync"
+
+	"github.com/gosimple/slug"
 )
 
 type ProductService interface {
 	Create(ctx context.Context, input CreateProductInput, productImagesFile map[string]multipart.File) (Product, error)
-	Update(ctx context.Context, inputData CreateProductInput, inputId GetProductInput) (Product, error)
+	Update(ctx context.Context, inputData UpdateProductInput, inputId GetProductInput) (Product, error)
 	Delete(ctx context.Context, input GetProductInput) error
 	Get(ctx context.Context, input GetProductInput) (Product, error)
 	GetAll(ctx context.Context) ([]Product, error)
@@ -36,10 +38,18 @@ func (p *ProductServiceImpl) Create(ctx context.Context, input CreateProductInpu
 	}
 	defer helper.HandleTransaction(tx, &err)
 
+	isProductExist, err := p.ProductRepository.FindBySlug(ctx, tx, slug.Make(input.Name))
+	if err != nil && err != custom.ErrNotFound {
+		return Product{}, err
+	}
+	if isProductExist.Id > 0 {
+		return Product{}, custom.ErrAlreadyExists
+	}
+
 	product := Product{
 		CategoryId:  input.CategoryId,
 		Name:        input.Name,
-		Slug:        input.Slug,
+		Slug:        slug.Make(input.Name),
 		RealPrice:   input.RealPrice,
 		Discount:    input.Discount,
 		Stock:       input.Stock,
@@ -72,13 +82,15 @@ func (p *ProductServiceImpl) Create(ctx context.Context, input CreateProductInpu
 			}
 			mu.Unlock()
 
-			insertProductImages(*p, fileName, file, errChan, &productImage, ctx, tx)
+			insertProductImages(*p, "product", fileName, file, errChan, &productImage, ctx, tx)
 		}()
 	}
 
-	wg.Wait()
+	go func() {
+		wg.Wait()
+		close(errChan)
+	}()
 
-	close(errChan)
 	for err := range errChan {
 		if err != nil {
 			return Product{}, err
@@ -112,11 +124,17 @@ func (p *ProductServiceImpl) CreateImage(ctx context.Context, input GetProductIn
 
 	for fileName, file := range productImagesFile {
 		wg.Add(1)
-		go insertProductImages(*p, fileName, file, errChan, &productImage, ctx, tx)
+		go func(fileName string, file multipart.File) {
+			defer wg.Done()
+			insertProductImages(*p, "product", fileName, file, errChan, &productImage, ctx, tx)
+		}(fileName, file)
 	}
-	wg.Wait()
 
-	close(errChan)
+	go func() {
+		wg.Wait()
+		close(errChan)
+	}()
+
 	for err := range errChan {
 		if err != nil {
 			return err
@@ -146,6 +164,29 @@ func (p *ProductServiceImpl) Delete(ctx context.Context, input GetProductInput) 
 		return err
 	}
 
+	chanErr := make(chan error, len(product.ProductImages))
+	var wg sync.WaitGroup
+
+	for _, image := range product.ProductImages {
+		wg.Add(1)
+		go func(image ProductImages) {
+			defer wg.Done()
+			err := deleteImage("product", image.ImageUrl)
+			chanErr <- err
+		}(image)
+	}
+
+	go func() {
+		wg.Wait()
+		close(chanErr)
+	}()
+
+	for err := range chanErr {
+		if err != nil {
+			return err
+		}
+	}
+
 	return nil
 }
 
@@ -156,15 +197,20 @@ func (p *ProductServiceImpl) DeleteImage(ctx context.Context, input GetProductIm
 	}
 	defer helper.HandleTransaction(tx, &err)
 
-	product, err := p.ProductRepository.FindImageById(ctx, tx, input.Id)
+	productImage, err := p.ProductRepository.FindImageById(ctx, tx, input.Id)
 	if err != nil {
 		return err
 	}
-	if product.Id <= 0 {
+	if productImage.Id <= 0 {
 		return custom.ErrNotFound
 	}
 
 	err = p.ProductRepository.Delete(ctx, tx, input.Id)
+	if err != nil {
+		return err
+	}
+
+	err = deleteImage("product", productImage.ImageUrl)
 	if err != nil {
 		return err
 	}
@@ -202,7 +248,7 @@ func (p *ProductServiceImpl) GetAll(ctx context.Context) ([]Product, error) {
 		return []Product{}, err
 	}
 	if len(products) <= 0 {
-		return []Product{}, custom.ErrNotFound
+		return []Product{}, nil
 	}
 
 	return products, nil
@@ -244,7 +290,7 @@ func (p *ProductServiceImpl) SetLogo(ctx context.Context, inputProductId GetProd
 	return nil
 }
 
-func (p *ProductServiceImpl) Update(ctx context.Context, inputData CreateProductInput, inputId GetProductInput) (Product, error) {
+func (p *ProductServiceImpl) Update(ctx context.Context, inputData UpdateProductInput, inputId GetProductInput) (Product, error) {
 	tx, err := p.DB.Begin()
 	if err != nil {
 		return Product{}, err
@@ -259,9 +305,17 @@ func (p *ProductServiceImpl) Update(ctx context.Context, inputData CreateProduct
 		return Product{}, custom.ErrNotFound
 	}
 
+	isSlugExist, err := p.ProductRepository.FindBySlug(ctx, tx, slug.Make(inputData.Name))
+	if err != nil && err != custom.ErrNotFound {
+		return Product{}, err
+	}
+	if isSlugExist.Id > 0 && isSlugExist.Id != product.Id {
+		return Product{}, custom.ErrAlreadyExists
+	}
+
 	product.CategoryId = inputData.CategoryId
 	product.Name = inputData.Name
-	product.Slug = inputData.Slug
+	product.Slug = slug.Make(inputData.Name)
 	product.RealPrice = inputData.RealPrice
 	product.Discount = inputData.Discount
 	product.Stock = inputData.Stock

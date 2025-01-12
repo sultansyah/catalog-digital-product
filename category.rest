@@ -7,7 +7,7 @@ Cookie: auth_token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3MzY2OTc5Mzcs
 Content-Type: application/json
 
 {
-    "name": "Buy groceries1"
+    "name": "skincare"
 }
 
 ### Edit Category

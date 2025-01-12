@@ -10,5 +10,6 @@ var (
 	ErrInternal      = errors.New("internal server error")
 	ErrUnauthorized  = errors.New("unauthorized")
 	ErrForbidden     = errors.New("you are not authorized to access this resource")
-	ErrImageRequired = errors.New("Image is required")
+	ErrImageRequired = errors.New("image is required")
+	ErrConflict      = errors.New("duplicate entry for key")
 )

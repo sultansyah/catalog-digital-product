@@ -9,6 +9,7 @@ import (
 type ProductRepository interface {
 	Insert(ctx context.Context, tx *sql.Tx, product Product) (Product, error)
 	FindById(ctx context.Context, tx *sql.Tx, id int) (Product, error)
+	FindBySlug(ctx context.Context, tx *sql.Tx, slug string) (Product, error)
 	FindAll(ctx context.Context, tx *sql.Tx) ([]Product, error)
 	Update(ctx context.Context, tx *sql.Tx, product Product) (Product, error)
 	Delete(ctx context.Context, tx *sql.Tx, id int) error
@@ -27,7 +28,7 @@ func NewProductRepository() ProductRepository {
 }
 
 func (p *ProductRepositoryImpl) Delete(ctx context.Context, tx *sql.Tx, id int) error {
-	sql := "delete from product where id = ?"
+	sql := "delete from products where id = ?"
 	_, err := tx.ExecContext(ctx, sql, id)
 	return err
 }
@@ -42,7 +43,7 @@ func (p *ProductRepositoryImpl) FindAll(ctx context.Context, tx *sql.Tx) ([]Prod
 	sql := `
 			SELECT 
 				p.id,
-				p.category_id, 
+				p.category_id,
 				p.name, 
 				p.slug, 
 				p.real_price, 
@@ -52,10 +53,15 @@ func (p *ProductRepositoryImpl) FindAll(ctx context.Context, tx *sql.Tx) ([]Prod
 				p.created_at, 
 				p.updated_at,
 				c.id AS category_id, 
-				c.name AS category_name, 
+				c.name AS category_name,
+				c.created_at, 
+				c.updated_at,
 				pi.id AS image_id, 
-				pi.image_url, 
-				pi.is_logo
+				pi.product_id,
+				pi.image_url,
+				pi.is_logo,
+				pi.created_at, 
+				pi.updated_at
 			FROM products AS p
 			INNER JOIN categories AS c ON c.id = p.category_id
 			INNER JOIN product_images AS pi ON pi.product_id = p.id
@@ -66,12 +72,32 @@ func (p *ProductRepositoryImpl) FindAll(ctx context.Context, tx *sql.Tx) ([]Prod
 	}
 	defer rows.Close()
 
-	var products []Product
+	productMap := make(map[int]Product)
+
 	for rows.Next() {
 		var product Product
-		if err := rows.Scan(&product.Id, &product.CategoryId, &product.Name, &product.Slug, &product.RealPrice, &product.Discount, &product.Stock, &product.Description, &product.CreatedAt, &product.UpdatedAt, &product.Category.Id, &product.Category.Name, &product.ProductImages.Id, &product.ProductImages.ImageUrl, &product.ProductImages.IsLogo); err != nil {
+		var image ProductImages
+
+		if err := rows.Scan(
+			&product.Id, &product.CategoryId, &product.Name, &product.Slug, &product.RealPrice,
+			&product.Discount, &product.Stock, &product.Description, &product.CreatedAt, &product.UpdatedAt,
+			&product.Category.Id, &product.Category.Name, &product.Category.CreatedAt,
+			&product.Category.UpdatedAt, &image.Id, &image.ProductId,
+			&image.ImageUrl, &image.IsLogo, &image.CreatedAt, &image.UpdatedAt); err != nil {
 			return []Product{}, err
 		}
+
+		if existingProduct, exist := productMap[product.Id]; exist {
+			existingProduct.ProductImages = append(existingProduct.ProductImages, image)
+			productMap[product.Id] = existingProduct
+		} else {
+			product.ProductImages = append(product.ProductImages, image)
+			productMap[product.Id] = product
+		}
+	}
+
+	var products []Product
+	for _, product := range productMap {
 		products = append(products, product)
 	}
 
@@ -82,7 +108,7 @@ func (p *ProductRepositoryImpl) FindById(ctx context.Context, tx *sql.Tx, id int
 	sql := `
 			SELECT 
 				p.id,
-				p.category_id, 
+				p.category_id,
 				p.name, 
 				p.slug, 
 				p.real_price, 
@@ -92,31 +118,98 @@ func (p *ProductRepositoryImpl) FindById(ctx context.Context, tx *sql.Tx, id int
 				p.created_at, 
 				p.updated_at,
 				c.id AS category_id, 
-				c.name AS category_name, 
+				c.name AS category_name,
+				c.created_at, 
+				c.updated_at,
 				pi.id AS image_id, 
-				pi.image_url, 
-				pi.is_logo
+				pi.product_id,
+				pi.image_url,
+				pi.is_logo,
+				pi.created_at, 
+				pi.updated_at
 			FROM products AS p
 			INNER JOIN categories AS c ON c.id = p.category_id
 			INNER JOIN product_images AS pi ON pi.product_id = p.id
 			WHERE p.id = ?
 		`
-	row, err := tx.QueryContext(ctx, sql, id)
+	rows, err := tx.QueryContext(ctx, sql, id)
 	if err != nil {
 		return Product{}, err
 	}
-	defer row.Close()
+	defer rows.Close()
 
 	var product Product
-	if row.Next() {
-		if err := row.Scan(&product.Id, &product.CategoryId, &product.Name, &product.Slug, &product.RealPrice, &product.Discount, &product.Stock, &product.Description, &product.CreatedAt, &product.UpdatedAt, &product.Category.Id, &product.Category.Name, &product.ProductImages.Id, &product.ProductImages.ImageUrl, &product.ProductImages.IsLogo); err != nil {
+	var images []ProductImages
+	for rows.Next() {
+		var image ProductImages
+		if err := rows.Scan(
+			&product.Id, &product.CategoryId, &product.Name, &product.Slug, &product.RealPrice,
+			&product.Discount, &product.Stock, &product.Description, &product.CreatedAt, &product.UpdatedAt,
+			&product.Category.Id, &product.Category.Name, &product.Category.CreatedAt,
+			&product.Category.UpdatedAt, &image.Id, &image.ProductId,
+			&image.ImageUrl, &image.IsLogo, &image.CreatedAt, &image.UpdatedAt); err != nil {
 			return Product{}, err
 		}
 
-		return product, nil
+		images = append(images, image)
 	}
+	product.ProductImages = images
 
-	return product, custom.ErrNotFound
+	return product, nil
+}
+
+func (p *ProductRepositoryImpl) FindBySlug(ctx context.Context, tx *sql.Tx, slug string) (Product, error) {
+	sql := `
+			SELECT 
+				p.id,
+				p.category_id,
+				p.name, 
+				p.slug, 
+				p.real_price, 
+				p.discount, 
+				p.stock, 
+				p.description, 
+				p.created_at, 
+				p.updated_at,
+				c.id AS category_id, 
+				c.name AS category_name,
+				c.created_at, 
+				c.updated_at,
+				pi.id AS image_id, 
+				pi.product_id,
+				pi.image_url,
+				pi.is_logo,
+				pi.created_at, 
+				pi.updated_at
+			FROM products AS p
+			INNER JOIN categories AS c ON c.id = p.category_id
+			INNER JOIN product_images AS pi ON pi.product_id = p.id
+			WHERE p.slug = ?
+		`
+	rows, err := tx.QueryContext(ctx, sql, slug)
+	if err != nil {
+		return Product{}, err
+	}
+	defer rows.Close()
+
+	var product Product
+	var images []ProductImages
+	for rows.Next() {
+		var image ProductImages
+		if err := rows.Scan(
+			&product.Id, &product.CategoryId, &product.Name, &product.Slug, &product.RealPrice,
+			&product.Discount, &product.Stock, &product.Description, &product.CreatedAt, &product.UpdatedAt,
+			&product.Category.Id, &product.Category.Name, &product.Category.CreatedAt,
+			&product.Category.UpdatedAt, &image.Id, &image.ProductId,
+			&image.ImageUrl, &image.IsLogo, &image.CreatedAt, &image.UpdatedAt); err != nil {
+			return Product{}, err
+		}
+
+		images = append(images, image)
+	}
+	product.ProductImages = images
+
+	return product, nil
 }
 
 func (p *ProductRepositoryImpl) Insert(ctx context.Context, tx *sql.Tx, product Product) (Product, error) {

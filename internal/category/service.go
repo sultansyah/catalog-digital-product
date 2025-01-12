@@ -96,7 +96,7 @@ func (c *CategoryServiceImpl) GetAll(ctx context.Context) ([]Category, error) {
 		return []Category{}, err
 	}
 	if len(categories) <= 0 {
-		return []Category{}, custom.ErrNotFound
+		return []Category{}, nil
 	}
 
 	return categories, nil

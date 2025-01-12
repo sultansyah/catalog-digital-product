@@ -10,14 +10,14 @@ import (
 	"time"
 )
 
-func insertProductImages(p ProductServiceImpl, fileName string, file multipart.File, errChan chan error, productImage *ProductImages, ctx context.Context, tx *sql.Tx) {
+func insertProductImages(p ProductServiceImpl, folder string, fileName string, file multipart.File, errChan chan error, productImage *ProductImages, ctx context.Context, tx *sql.Tx) {
 	cwd, err := os.Getwd()
 	if err != nil {
 		errChan <- err
 	}
 
-	productImageFileName := fmt.Sprintf("%d-store-%s", time.Now().Unix(), fileName)
-	productImagePath := fmt.Sprintf("%s/public/images/store/%s", cwd, productImageFileName)
+	productImageFileName := fmt.Sprintf("%d-product-%s", time.Now().Unix(), fileName)
+	productImagePath := fmt.Sprintf("%s/public/images/%s/%s", cwd, folder, productImageFileName)
 
 	productImage.ImageUrl = productImageFileName
 	err = p.ProductRepository.InsertImage(ctx, tx, *productImage)
@@ -27,10 +27,28 @@ func insertProductImages(p ProductServiceImpl, fileName string, file multipart.F
 	}
 
 	if err := helper.SaveUploadedFile(file, productImagePath); err != nil {
-		defer os.Remove(productImagePath)
+		defer func() {
+			if err := os.Remove(productImagePath); err != nil {
+				errChan <- err
+			}
+		}()
 		errChan <- err
 		return
 	}
 
 	errChan <- nil
+}
+
+func deleteImage(folder string, imageName string) error {
+	cwd, err := os.Getwd()
+	if err != nil {
+		return err
+	}
+
+	productImagePath := fmt.Sprintf("%s/public/images/%s/%s", cwd, folder, imageName)
+	err = os.Remove(productImagePath)
+	if err != nil {
+		return err
+	}
+	return nil
 }

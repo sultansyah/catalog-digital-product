@@ -45,6 +45,10 @@ func HandleErrorResponde(c *gin.Context, err error) {
 		webResponse.Code = http.StatusUnauthorized
 		webResponse.Status = "error"
 		webResponse.Message = "unauthorized"
+	case custom.ErrImageRequired:
+		webResponse.Code = http.StatusBadRequest
+		webResponse.Status = "error"
+		webResponse.Message = "image is required"
 	default:
 		webResponse.Code = http.StatusInternalServerError
 		webResponse.Status = "error"

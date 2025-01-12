@@ -9,7 +9,7 @@ type Product struct {
 	Id            int               `json:"id"`
 	CategoryId    int               `json:"category_id"`
 	Category      category.Category `json:"category"`
-	ProductImages ProductImages     `json:"product_images"`
+	ProductImages []ProductImages   `json:"product_images"`
 	Name          string            `json:"name"`
 	Slug          string            `json:"slug"`
 	RealPrice     float64           `json:"real_price"`
