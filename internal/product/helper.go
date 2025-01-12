@@ -46,6 +46,7 @@ func deleteImage(folder string, imageName string) error {
 	}
 
 	productImagePath := fmt.Sprintf("%s/public/images/%s/%s", cwd, folder, imageName)
+	fmt.Println("path = ", productImagePath)
 	err = os.Remove(productImagePath)
 	if err != nil {
 		return err

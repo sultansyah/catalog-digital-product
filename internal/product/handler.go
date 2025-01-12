@@ -160,6 +160,10 @@ func (p *ProductHandlerImpl) InsertImage(c *gin.Context) {
 	}
 
 	imageFiles := form.File["images"]
+	if len(imageFiles) <= 0 {
+		helper.HandleErrorResponde(c, custom.ErrImageRequired)
+		return
+	}
 
 	productImagesFile := make(map[string]multipart.File)
 	for _, file := range imageFiles {
@@ -182,7 +186,7 @@ func (p *ProductHandlerImpl) InsertImage(c *gin.Context) {
 	helper.APIResponse(c, helper.WebResponse{
 		Code:    http.StatusOK,
 		Status:  "success",
-		Message: "success insert new product",
+		Message: "success insert new product images",
 		Data:    "OK",
 	})
 }

@@ -72,18 +72,20 @@ func (p *ProductServiceImpl) Create(ctx context.Context, input CreateProductInpu
 
 	for fileName, file := range productImagesFile {
 		wg.Add(1)
-		go func() {
+		go func(fileNameInner string, fileInner multipart.File) {
 			defer wg.Done()
 
 			mu.Lock()
 			if isFirstFile {
 				productImage.IsLogo = true
 				isFirstFile = false
+			} else {
+				productImage.IsLogo = false
 			}
 			mu.Unlock()
 
-			insertProductImages(*p, "product", fileName, file, errChan, &productImage, ctx, tx)
-		}()
+			insertProductImages(*p, "product", fileNameInner, fileInner, errChan, &productImage, ctx, tx)
+		}(fileName, file)
 	}
 
 	go func() {
@@ -124,9 +126,9 @@ func (p *ProductServiceImpl) CreateImage(ctx context.Context, input GetProductIn
 
 	for fileName, file := range productImagesFile {
 		wg.Add(1)
-		go func(fileName string, file multipart.File) {
+		go func(fileNameInner string, fileInner multipart.File) {
 			defer wg.Done()
-			insertProductImages(*p, "product", fileName, file, errChan, &productImage, ctx, tx)
+			insertProductImages(*p, "product", fileNameInner, fileInner, errChan, &productImage, ctx, tx)
 		}(fileName, file)
 	}
 
@@ -164,24 +166,9 @@ func (p *ProductServiceImpl) Delete(ctx context.Context, input GetProductInput) 
 		return err
 	}
 
-	chanErr := make(chan error, len(product.ProductImages))
-	var wg sync.WaitGroup
-
 	for _, image := range product.ProductImages {
-		wg.Add(1)
-		go func(image ProductImages) {
-			defer wg.Done()
-			err := deleteImage("product", image.ImageUrl)
-			chanErr <- err
-		}(image)
-	}
+		err = deleteImage("product", image.ImageUrl)
 
-	go func() {
-		wg.Wait()
-		close(chanErr)
-	}()
-
-	for err := range chanErr {
 		if err != nil {
 			return err
 		}
