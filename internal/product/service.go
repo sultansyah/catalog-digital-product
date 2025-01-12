@@ -5,6 +5,7 @@ import (
 	"catalog-digital-product/internal/helper"
 	"context"
 	"database/sql"
+	"fmt"
 	"mime/multipart"
 	"sync"
 
@@ -60,10 +61,6 @@ func (p *ProductServiceImpl) Create(ctx context.Context, input CreateProductInpu
 		return Product{}, err
 	}
 
-	productImage := ProductImages{
-		ProductId: product.Id,
-	}
-
 	var mu sync.Mutex
 	var wg sync.WaitGroup
 	isFirstFile := true
@@ -74,15 +71,20 @@ func (p *ProductServiceImpl) Create(ctx context.Context, input CreateProductInpu
 		wg.Add(1)
 		go func(fileNameInner string, fileInner multipart.File) {
 			defer wg.Done()
+			productImage := ProductImages{
+				ProductId: product.Id,
+			}
 
 			mu.Lock()
+			currentIsFirst := isFirstFile
 			if isFirstFile {
-				productImage.IsLogo = true
 				isFirstFile = false
-			} else {
-				productImage.IsLogo = false
 			}
 			mu.Unlock()
+
+			if currentIsFirst {
+				productImage.IsLogo = true
+			}
 
 			insertProductImages(*p, "product", fileNameInner, fileInner, errChan, &productImage, ctx, tx)
 		}(fileName, file)
@@ -192,9 +194,21 @@ func (p *ProductServiceImpl) DeleteImage(ctx context.Context, input GetProductIm
 		return custom.ErrNotFound
 	}
 
-	err = p.ProductRepository.Delete(ctx, tx, input.Id)
+	err = p.ProductRepository.DeleteImage(ctx, tx, input.Id)
 	if err != nil {
 		return err
+	}
+
+	if productImage.IsLogo {
+		lastestProductImage, err := p.ProductRepository.FindLatestImage(ctx, tx, productImage.ProductId)
+		if err != nil {
+			return err
+		}
+
+		err = p.ProductRepository.UpdateImage(ctx, tx, lastestProductImage.Id)
+		if err != nil {
+			return err
+		}
 	}
 
 	err = deleteImage("product", productImage.ImageUrl)
@@ -255,6 +269,7 @@ func (p *ProductServiceImpl) SetLogo(ctx context.Context, inputProductId GetProd
 	if product.Id <= 0 {
 		return custom.ErrNotFound
 	}
+	fmt.Println("product = ", product)
 
 	productImages, err := p.ProductRepository.FindImageById(ctx, tx, inputProductImageId.Id)
 	if err != nil {
@@ -263,6 +278,7 @@ func (p *ProductServiceImpl) SetLogo(ctx context.Context, inputProductId GetProd
 	if productImages.Id <= 0 {
 		return custom.ErrNotFound
 	}
+	fmt.Println("productiamg = ", productImages)
 
 	err = p.ProductRepository.UpdateImagesLogoFalse(ctx, tx, inputProductId.Id)
 	if err != nil {

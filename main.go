@@ -103,8 +103,8 @@ func main() {
 	api.DELETE("/products/:id", middleware.AuthMiddleware(tokenService), productHandler.Delete)
 
 	api.POST("/products/:id/images", middleware.AuthMiddleware(tokenService), productHandler.InsertImage)
-	api.POST("/products/:id/images/:id", middleware.AuthMiddleware(tokenService), productHandler.SetLogoImage)
-	api.DELETE("/products/:id/images/:id", middleware.AuthMiddleware(tokenService), productHandler.SetLogoImage)
+	api.PUT("/products/:id/images/:imageId", middleware.AuthMiddleware(tokenService), productHandler.SetLogoImage)
+	api.DELETE("/products/:id/images/:imageId", middleware.AuthMiddleware(tokenService), productHandler.DeleteImage)
 
 	if err := router.Run(); err != nil {
 		log.Fatalf("Failed to run server: %v", err)

@@ -9,6 +9,7 @@ import (
 type ProductRepository interface {
 	Insert(ctx context.Context, tx *sql.Tx, product Product) (Product, error)
 	FindById(ctx context.Context, tx *sql.Tx, id int) (Product, error)
+	FindLatestImage(ctx context.Context, tx *sql.Tx, productId int) (ProductImages, error)
 	FindBySlug(ctx context.Context, tx *sql.Tx, slug string) (Product, error)
 	FindAll(ctx context.Context, tx *sql.Tx) ([]Product, error)
 	Update(ctx context.Context, tx *sql.Tx, product Product) (Product, error)
@@ -156,6 +157,39 @@ func (p *ProductRepositoryImpl) FindById(ctx context.Context, tx *sql.Tx, id int
 	product.ProductImages = images
 
 	return product, nil
+}
+
+func (p *ProductRepositoryImpl) FindLatestImage(ctx context.Context, tx *sql.Tx, productId int) (ProductImages, error) {
+	sql := `
+			SELECT 
+				ps.id, 
+				ps.product_id,
+				ps.image_url,
+				ps.is_logo,
+				ps.created_at, 
+				ps.updated_at
+			FROM product_images AS ps
+			INNER JOIN products AS pi ON pi.id = ps.product_id
+			WHERE pi.id = ?
+            ORDER BY ps.updated_at DESC
+            LIMIT 1
+		`
+	row, err := tx.QueryContext(ctx, sql, productId)
+	if err != nil {
+		return ProductImages{}, err
+	}
+	defer row.Close()
+
+	var productImage ProductImages
+	if row.Next() {
+		if err := row.Scan(
+			&productImage.Id, &productImage.ProductId,
+			&productImage.ImageUrl, &productImage.IsLogo, &productImage.CreatedAt, &productImage.UpdatedAt); err != nil {
+			return ProductImages{}, err
+		}
+	}
+
+	return productImage, nil
 }
 
 func (p *ProductRepositoryImpl) FindBySlug(ctx context.Context, tx *sql.Tx, slug string) (Product, error) {

@@ -23,5 +23,5 @@ type GetProductInput struct {
 }
 
 type GetProductImageInput struct {
-	Id int `uri:"id" binding:"required"`
+	Id int `uri:"imageId" binding:"required"`
 }
