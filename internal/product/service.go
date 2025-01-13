@@ -17,6 +17,7 @@ type ProductService interface {
 	Update(ctx context.Context, inputData UpdateProductInput, inputId GetProductInput) (Product, error)
 	Delete(ctx context.Context, input GetProductInput) error
 	Get(ctx context.Context, input GetProductInput) (Product, error)
+	GetBySlug(ctx context.Context, input SlugProductInput) (Product, error)
 	GetAll(ctx context.Context) ([]Product, error)
 	CreateImage(ctx context.Context, input GetProductInput, productImagesFile map[string]multipart.File) error
 	DeleteImage(ctx context.Context, input GetProductImageInput) error
@@ -227,6 +228,24 @@ func (p *ProductServiceImpl) Get(ctx context.Context, input GetProductInput) (Pr
 	defer helper.HandleTransaction(tx, &err)
 
 	product, err := p.ProductRepository.FindById(ctx, tx, input.Id)
+	if err != nil {
+		return Product{}, err
+	}
+	if product.Id <= 0 {
+		return Product{}, custom.ErrNotFound
+	}
+
+	return product, nil
+}
+
+func (p *ProductServiceImpl) GetBySlug(ctx context.Context, input SlugProductInput) (Product, error) {
+	tx, err := p.DB.Begin()
+	if err != nil {
+		return Product{}, err
+	}
+	defer helper.HandleTransaction(tx, &err)
+
+	product, err := p.ProductRepository.FindBySlug(ctx, tx, input.Slug)
 	if err != nil {
 		return Product{}, err
 	}

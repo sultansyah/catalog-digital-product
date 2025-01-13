@@ -97,7 +97,8 @@ func main() {
 	api.GET("/store", storeHandler.GetStore)
 
 	api.GET("/products", productHandler.GetAll)
-	api.GET("/products/:id", productHandler.Get)
+	api.GET("/products/id/:id", productHandler.Get)
+	api.GET("/products/slug/:slug", productHandler.GetBySlug)
 	api.POST("/products", middleware.AuthMiddleware(tokenService), productHandler.Insert)
 	api.PUT("/products/:id", middleware.AuthMiddleware(tokenService), productHandler.Update)
 	api.DELETE("/products/:id", middleware.AuthMiddleware(tokenService), productHandler.Delete)

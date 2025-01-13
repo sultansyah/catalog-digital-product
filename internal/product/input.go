@@ -22,6 +22,10 @@ type GetProductInput struct {
 	Id int `uri:"id" binding:"required"`
 }
 
+type SlugProductInput struct {
+	Slug string `uri:"slug" binding:"required"`
+}
+
 type GetProductImageInput struct {
 	Id int `uri:"imageId" binding:"required"`
 }

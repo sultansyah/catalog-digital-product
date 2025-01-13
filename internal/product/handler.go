@@ -13,6 +13,7 @@ type ProductHandler interface {
 	Insert(c *gin.Context)
 	Update(c *gin.Context)
 	Get(c *gin.Context)
+	GetBySlug(c *gin.Context)
 	GetAll(c *gin.Context)
 	Delete(c *gin.Context)
 	InsertImage(c *gin.Context)
@@ -75,6 +76,26 @@ func (p *ProductHandlerImpl) Get(c *gin.Context) {
 	}
 
 	product, err := p.ProductService.Get(c.Request.Context(), input)
+	if err != nil {
+		helper.HandleErrorResponde(c, err)
+		return
+	}
+
+	helper.APIResponse(c, helper.WebResponse{
+		Code:    http.StatusOK,
+		Status:  "success",
+		Message: "success get data",
+		Data:    product,
+	})
+}
+
+func (p *ProductHandlerImpl) GetBySlug(c *gin.Context) {
+	var input SlugProductInput
+	if !helper.BindAndValidate(c, &input, "uri") {
+		return
+	}
+
+	product, err := p.ProductService.GetBySlug(c.Request.Context(), input)
 	if err != nil {
 		helper.HandleErrorResponde(c, err)
 		return
