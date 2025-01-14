@@ -1,0 +1,142 @@
+<!-- Hero Section -->
+<section class="bg-light text-center py-5">
+    <div class="container">
+        <h1 class="display-5 fw-bold">Selamat Datang di Katalog Digital Produk</h1>
+        <p class="lead">Jelajahi berbagai produk pilihan kami yang tersedia di katalog digital. Temukan yang terbaik
+            untuk kebutuhan Anda.</p>
+
+        <!-- Category Section with Dropdown -->
+        <div class="mb-4">
+            <select class="form-select" id="category-dropdown">
+                <option value="">Semua Kategori</option>
+
+            </select>
+        </div>
+
+        <!-- Product Section -->
+        <div class="row g-4" id="product-list">
+
+        </div>
+    </div>
+</section>
+
+<!-- Features Section -->
+<section class="py-5">
+    <div class="container">
+        <h2 class="text-center mb-4">Kenapa Memilih Kami?</h2>
+        <div class="row g-4">
+            <div class="col-md-4 text-center">
+                <div class="card p-4 shadow">
+                    <h5 class="card-title">Beragam Kategori</h5>
+                    <p class="card-text">Produk kami terorganisasi dengan baik dalam berbagai kategori.</p>
+                </div>
+            </div>
+            <div class="col-md-4 text-center">
+                <div class="card p-4 shadow">
+                    <h5 class="card-title">Desain Responsif</h5>
+                    <p class="card-text">Akses katalog kami dengan mudah di perangkat apa saja.</p>
+                </div>
+            </div>
+            <div class="col-md-4 text-center">
+                <div class="card p-4 shadow">
+                    <h5 class="card-title">Mudah Digunakan</h5>
+                    <p class="card-text">Antarmuka yang intuitif untuk memudahkan Anda mencari produk.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<script type="module">
+    const productList = document.getElementById("product-list")
+    const categoryDropdown = document.getElementById("category-dropdown")
+
+    try {
+        const products = await fetchProducts()
+        setProducts(products)
+
+        const categories = await fetchCategories()
+        setCategories(categories)
+
+        categoryDropdown.addEventListener('change', async (event) => {
+            const categoryId = event.target.value
+            setProducts(products, categoryId)
+        })
+    } catch (error) {
+        console.log(error)
+    }
+
+    async function fetchCategories() {
+        const response = await fetch('http://localhost:8080/api/v1/categories')
+
+        if (response.ok) {
+            const result = await response.json()
+            const categories = result.data
+            return categories
+        } else {
+            throw response
+        }
+    }
+
+    async function fetchProducts() {
+        const response = await fetch('http://localhost:8080/api/v1/products')
+
+        if (response.ok) {
+            const result = await response.json()
+            const products = result.data
+            return products
+        } else {
+            throw response
+        }
+    }
+
+    function setCategories(categories) {
+        categories.forEach(category => {
+            const option = document.createElement("option")
+            option.value = category.id
+            option.textContent = category.name
+            categoryDropdown.appendChild(option)
+        })
+    }
+
+    function setProducts(products, categoryId) {
+        let productCards = ''
+
+        products.forEach(product => {
+            if (categoryId == '' || categoryId == undefined || product.category_id == categoryId) {
+                productCards += `
+                <div class="col-md-4">
+                    <div class="card">
+                        <img src="/static/images/product/${product.product_images[0].image_url}" class="card-img-top" alt="${product.name}">
+                        <div class="card-body">
+                            <h5 class="card-title">${product.name}</h5>
+                            <p class="card-text">${product.description}</p>
+                            <p class="card-text">
+                                <strong>Harga:</strong> ${formatCurrency(product.real_price)}
+                                <br>
+                                <strong>Diskon:</strong> ${product.discount}%
+                                <br>
+                                <strong>Setelah Diskon:</strong> ${formatCurrency(product.real_price - (product.real_price * product.discount / 100))}
+                            </p>
+                            <p class="card-text">
+                                <strong>Stok:</strong> ${product.stock} unit tersedia
+                            </p>
+                            <a href="/product/${product.slug}" class="btn btn-primary">Lihat Detail</a>
+                        </div>
+                    </div>
+                </div>
+            `;
+            }
+        });
+
+        productList.innerHTML = productCards;
+    }
+
+
+    function formatCurrency(amount) {
+        return new Intl.NumberFormat('id-ID', {
+            style: 'currency',
+            currency: 'IDR'
+        }).format(amount)
+    }
+</script>

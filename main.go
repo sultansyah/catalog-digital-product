@@ -9,7 +9,9 @@ import (
 	"catalog-digital-product/internal/token"
 	"catalog-digital-product/internal/user"
 	"log"
+	"net/http"
 	"os"
+	"path/filepath"
 	"strconv"
 	"time"
 
@@ -62,9 +64,9 @@ func main() {
 		AllowCredentials: true,
 		MaxAge:           12 * time.Hour,
 	}))
+	router.Static("/static/images", "./public/images")
 
 	api := router.Group("/api/v1")
-	api.Static("/static/store", "./public/images/store")
 
 	tokenService := token.NewTokenService([]byte(jwtSecretKey))
 
@@ -83,6 +85,44 @@ func main() {
 	productRepository := product.NewProductRepository()
 	productService := product.NewProductService(productRepository, db)
 	productHandler := product.NewProductHandler(productService)
+
+	templatesDir := "./internal/templates"
+	router.LoadHTMLFiles(
+		filepath.Join(templatesDir, "index.html"),
+		filepath.Join(templatesDir, "product.html"),
+		filepath.Join(templatesDir, "about.html"),
+		filepath.Join(templatesDir, "home.html"),
+		filepath.Join(templatesDir, "layouts_home", "header.html"),
+		filepath.Join(templatesDir, "layouts_home", "footer.html"),
+	)
+
+	router.GET("/", func(c *gin.Context) {
+		c.HTML(http.StatusOK, "index.html", gin.H{
+			"title":    "Katalog Digital Produk",
+			"htmlfile": "home.html",
+		})
+	})
+
+	router.GET("/about", func(c *gin.Context) {
+		c.HTML(http.StatusOK, "index.html", gin.H{
+			"title":    "Tentang Kami - Katalog Digital Produk",
+			"htmlfile": "about.html",
+		})
+	})
+
+	router.GET("/product/:slug", func(c *gin.Context) {
+		var input product.SlugProductInput
+
+		if err := c.ShouldBindUri(&input); err != nil {
+			input.Slug = ""
+		}
+
+		c.HTML(http.StatusOK, "index.html", gin.H{
+			"title":    "Tentang Kami - Katalog Digital Produk",
+			"id":       input.Slug,
+			"htmlfile": "product.html",
+		})
+	})
 
 	api.POST("/auth/login", userHandler.Login)
 	api.POST("/auth/password", middleware.AuthMiddleware(tokenService), userHandler.UpdatePassword)

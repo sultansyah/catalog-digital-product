@@ -1,0 +1,100 @@
+<div class="container my-5">
+    <div class="row">
+        <div class="col-md-6">
+            <!-- Product Images Carousel -->
+            <div id="productImagesCarousel" class="carousel slide" data-bs-ride="carousel">
+                <div class="carousel-inner">
+                    <!-- Loop through ProductImages array here -->
+
+                    <!-- Add more images if necessary -->
+                </div>
+                <button class="carousel-control-prev" style="background-color: black;" type="button" data-bs-target="#productImagesCarousel"
+                    data-bs-slide="prev">
+                    <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+                    <span class="visually-hidden">Previous</span>
+                </button>
+                <button class="carousel-control-next" type="button" style="background-color: black;" data-bs-target="#productImagesCarousel"
+                    data-bs-slide="next">
+                    <span class="carousel-control-next-icon" aria-hidden="true"></span>
+                    <span class="visually-hidden">Next</span>
+                </button>
+            </div>
+        </div>
+
+        <div class="col-md-6">
+            <h2 id="name">Product Name</h2>
+            <p id="category"><strong>Category:</strong> Product Category</p>
+
+            <!-- Price & Discount -->
+            <h4>
+                <span id="real_price" class="text-decoration-line-through">Real Price</span>
+                <span id="discount_price" class="text-success">Discounted Price</span>
+            </h4>
+
+            <!-- Stock Status -->
+            <p id="stock"><strong>Stock:</strong> 20 units available</p>
+
+            <!-- Product Description -->
+            <p><strong>Description:</strong></p>
+            <p id="description">Product description goes here. It provides details about the product features, usage,
+                etc.</p>
+        </div>
+    </div>
+</div>
+
+
+<script type="module">
+    try {
+        const slug = getSlug()
+        const product = await fetchProduct(slug)
+        setProduct(product)
+    } catch (error) {
+        console.log(error)
+    }
+
+    function getSlug() {
+        const path = window.location.pathname
+        const segments = path.split('/')
+        const slug = segments[segments.length - 1]
+        return slug
+    }
+
+    async function fetchProduct(slug) {
+        const response = await fetch(`http://localhost:8080/api/v1/products/slug/${slug}`)
+
+        if (response.ok) {
+            const result = await response.json()
+            const product = result.data
+            console.log(product);
+
+            return product
+        } else {
+            throw response
+        }
+    }
+
+    function setProduct(product) {
+        let imageList = ''
+        product.product_images.forEach((item, index) => {
+            imageList += `<div class="carousel-item ${index == 0 ? 'active' : ''}">
+                        <img src="/static/images/product/${item.image_url}" class="d-block w-100" alt="${product.name}">
+                    </div>`
+        })
+
+        document.querySelector(".carousel-inner").innerHTML = imageList
+        document.getElementById("name").innerHTML = product.name
+        document.getElementById("category").innerHTML = `<strong>Category:</strong> ${product.category.name}`
+        document.getElementById("real_price").innerHTML = formatCurrency(product.real_price)
+        document.getElementById("discount_price").innerHTML = formatCurrency(product.real_price - (product.real_price * product.discount / 100))
+        document.getElementById("stock").innerHTML = `<strong>Stock:</strong> ${product.stock} tersedia`
+        document.getElementById("description").innerHTML = product.description
+    }
+
+
+    function formatCurrency(amount) {
+        return new Intl.NumberFormat('id-ID', {
+            style: 'currency',
+            currency: 'IDR'
+        }).format(amount)
+    }
+</script>
